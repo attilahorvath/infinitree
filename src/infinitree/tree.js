@@ -23,6 +23,7 @@ class Tree {
     this.rightDown = false;
 
     this.xSpeed = 0;
+    this.yOffset = this.branches[0].y - 240;
 
     addEventListener('keydown', event => {
       if (event.which === 37) {

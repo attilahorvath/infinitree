@@ -1,8 +1,11 @@
 'use strict';
 
 import Sky from './sky';
+import Title from './title';
+import Ground from './ground';
 import Tree from './tree';
 import Particle from './particle';
+import Music from './music';
 
 class Game {
   constructor() {
@@ -12,6 +15,11 @@ class Game {
     document.body.appendChild(this.canvas);
 
     this.context = this.canvas.getContext('2d');
+
+    this.title = new Title();
+    this.ground = new Ground();
+
+    this.started = false;
 
     this.sky = new Sky(this);
     this.tree = new Tree(this);
@@ -24,6 +32,8 @@ class Game {
     this.yOffset = 0;
 
     this.shakeTimer = 0;
+
+    this.music = new Music();
 
     this.lastTime = performance.now();
   }
@@ -42,7 +52,10 @@ class Game {
 
   update(deltaTime) {
     this.sky.update(deltaTime);
-    this.tree.update(deltaTime);
+
+    if (this.started) {
+      this.tree.update(deltaTime);
+    }
 
     this.yOffset = this.tree.yOffset;
 
@@ -67,7 +80,8 @@ class Game {
       yOffset += -5 + Math.round(10 * Math.random() % 10);
     }
 
-    this.sky.draw(this.context);
+    this.sky.draw(this.context, xOffset, yOffset);
+    this.ground.draw(this.context, xOffset, yOffset);
     this.tree.draw(this.context, xOffset, yOffset);
 
     for (let particle of this.particles) {
@@ -78,6 +92,12 @@ class Game {
     this.context.textBaseline = 'top';
     this.context.fillStyle = 'black';
     this.context.fillText(`Score: ${this.score}`, 10, 10);
+
+    if (!this.started) {
+      this.title.draw(this.context);
+    }
+
+    this.started = this.title.started;
 
     this.context.setTransform(1, 0, 0, 1, 0, 0);
   }

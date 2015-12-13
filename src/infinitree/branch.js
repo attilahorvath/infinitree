@@ -11,7 +11,7 @@ class Branch {
     this.y = y;
 
     this.lastX = this.x;
-    this.lastY = this.y;
+    this.lastY = this.y + 10;
 
     this.targetX = 0;
 
@@ -22,6 +22,8 @@ class Branch {
     this.lastLeaf = 0;
 
     this.alive = true;
+
+    this.addSection(this.x, this.y, this.lastX, this.lastY);
   }
 
   update(deltaTime) {

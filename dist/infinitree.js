@@ -9,7 +9,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 var game = new _game2.default();
 game.run();
-},{"./infinitree/game":3}],2:[function(require,module,exports){
+},{"./infinitree/game":4}],2:[function(require,module,exports){
 'use strict';
 
 var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
@@ -40,7 +40,7 @@ var Branch = (function () {
     this.y = y;
 
     this.lastX = this.x;
-    this.lastY = this.y;
+    this.lastY = this.y + 10;
 
     this.targetX = 0;
 
@@ -51,6 +51,8 @@ var Branch = (function () {
     this.lastLeaf = 0;
 
     this.alive = true;
+
+    this.addSection(this.x, this.y, this.lastX, this.lastY);
   }
 
   _createClass(Branch, [{
@@ -188,7 +190,55 @@ var Branch = (function () {
 })();
 
 exports.default = Branch;
-},{"./leaf":5,"./section":7}],3:[function(require,module,exports){
+},{"./leaf":7,"./section":10}],3:[function(require,module,exports){
+'use strict';
+
+var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _get_image = require('./get_image');
+
+var _get_image2 = _interopRequireDefault(_get_image);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var Cloud = (function () {
+  function Cloud(x, y, xSpeed) {
+    _classCallCheck(this, Cloud);
+
+    this.x = x;
+    this.y = y;
+    this.xSpeed = xSpeed;
+  }
+
+  _createClass(Cloud, [{
+    key: 'update',
+    value: function update(deltaTime) {
+      this.x += this.xSpeed * deltaTime;
+    }
+  }, {
+    key: 'draw',
+    value: function draw(context, xOffset, yOffset) {
+      var image = (0, _get_image2.default)('images/cloud.png');
+      if (image) {
+        context.drawImage(image, this.x - xOffset, this.y - yOffset);
+      } else {
+        context.fillStyle = 'black';
+        context.fillRect(this.x - xOffset, this.y - yOffset, 100, 50);
+      }
+    }
+  }]);
+
+  return Cloud;
+})();
+
+exports.default = Cloud;
+},{"./get_image":5}],4:[function(require,module,exports){
 'use strict';
 
 var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
@@ -201,6 +251,14 @@ var _sky = require('./sky');
 
 var _sky2 = _interopRequireDefault(_sky);
 
+var _title = require('./title');
+
+var _title2 = _interopRequireDefault(_title);
+
+var _ground = require('./ground');
+
+var _ground2 = _interopRequireDefault(_ground);
+
 var _tree = require('./tree');
 
 var _tree2 = _interopRequireDefault(_tree);
@@ -208,6 +266,10 @@ var _tree2 = _interopRequireDefault(_tree);
 var _particle = require('./particle');
 
 var _particle2 = _interopRequireDefault(_particle);
+
+var _music = require('./music');
+
+var _music2 = _interopRequireDefault(_music);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -224,6 +286,11 @@ var Game = (function () {
 
     this.context = this.canvas.getContext('2d');
 
+    this.title = new _title2.default();
+    this.ground = new _ground2.default();
+
+    this.started = false;
+
     this.sky = new _sky2.default(this);
     this.tree = new _tree2.default(this);
 
@@ -235,6 +302,8 @@ var Game = (function () {
     this.yOffset = 0;
 
     this.shakeTimer = 0;
+
+    this.music = new _music2.default();
 
     this.lastTime = performance.now();
   }
@@ -260,7 +329,10 @@ var Game = (function () {
     key: 'update',
     value: function update(deltaTime) {
       this.sky.update(deltaTime);
-      this.tree.update(deltaTime);
+
+      if (this.started) {
+        this.tree.update(deltaTime);
+      }
 
       this.yOffset = this.tree.yOffset;
 
@@ -307,7 +379,8 @@ var Game = (function () {
         yOffset += -5 + Math.round(10 * Math.random() % 10);
       }
 
-      this.sky.draw(this.context);
+      this.sky.draw(this.context, xOffset, yOffset);
+      this.ground.draw(this.context, xOffset, yOffset);
       this.tree.draw(this.context, xOffset, yOffset);
 
       var _iteratorNormalCompletion2 = true;
@@ -339,6 +412,12 @@ var Game = (function () {
       this.context.textBaseline = 'top';
       this.context.fillStyle = 'black';
       this.context.fillText('Score: ' + this.score, 10, 10);
+
+      if (!this.started) {
+        this.title.draw(this.context);
+      }
+
+      this.started = this.title.started;
 
       this.context.setTransform(1, 0, 0, 1, 0, 0);
     }
@@ -383,7 +462,7 @@ var Game = (function () {
 })();
 
 exports.default = Game;
-},{"./particle":6,"./sky":8,"./tree":10}],4:[function(require,module,exports){
+},{"./ground":6,"./music":8,"./particle":9,"./sky":11,"./title":13,"./tree":14}],5:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -413,7 +492,54 @@ var getImage = function getImage(path) {
 };
 
 exports.default = getImage;
-},{}],5:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
+'use strict';
+
+var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _get_image = require('./get_image');
+
+var _get_image2 = _interopRequireDefault(_get_image);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var Ground = (function () {
+  function Ground() {
+    _classCallCheck(this, Ground);
+  }
+
+  _createClass(Ground, [{
+    key: 'draw',
+    value: function draw(context, xOffset, yOffset) {
+      var topImage = (0, _get_image2.default)('images/ground_top.png');
+      var image = (0, _get_image2.default)('images/ground.png');
+
+      for (var x = 0; x <= 640; x += 50) {
+        for (var y = 480; y <= 720; y += 50) {
+          if (y === 480 && topImage) {
+            context.drawImage(topImage, x - xOffset, y - yOffset);
+          } else if (image) {
+            context.drawImage(image, x - xOffset, y - yOffset);
+          } else {
+            context.fillStyle = 'black';
+            context.fillRect(x - xOffset, y - yOffset, 50, 50);
+          }
+        }
+      }
+    }
+  }]);
+
+  return Ground;
+})();
+
+exports.default = Ground;
+},{"./get_image":5}],7:[function(require,module,exports){
 'use strict';
 
 var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
@@ -464,7 +590,25 @@ var Leaf = (function () {
 })();
 
 exports.default = Leaf;
-},{"./get_image":4}],6:[function(require,module,exports){
+},{"./get_image":5}],8:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var Music = function Music() {
+  _classCallCheck(this, Music);
+
+  this.audio = new Audio('audio/infinitree.mp3');
+  this.audio.loop = true;
+  this.audio.play();
+};
+
+exports.default = Music;
+},{}],9:[function(require,module,exports){
 'use strict';
 
 var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
@@ -516,7 +660,7 @@ var Particle = (function () {
 })();
 
 exports.default = Particle;
-},{"./get_image":4}],7:[function(require,module,exports){
+},{"./get_image":5}],10:[function(require,module,exports){
 'use strict';
 
 var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
@@ -569,7 +713,7 @@ var Section = (function () {
 })();
 
 exports.default = Section;
-},{"./get_image":4}],8:[function(require,module,exports){
+},{"./get_image":5}],11:[function(require,module,exports){
 'use strict';
 
 var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
@@ -578,11 +722,19 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
+var _cloud = require('./cloud');
+
+var _cloud2 = _interopRequireDefault(_cloud);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 var Sky = (function () {
-  function Sky() {
+  function Sky(game) {
     _classCallCheck(this, Sky);
+
+    this.game = game;
 
     this.hue = 240;
     this.saturation = 100;
@@ -591,6 +743,14 @@ var Sky = (function () {
     this.hueDirection = -1;
     this.saturationDirection = -1;
     this.lightnessDirection = 1;
+
+    this.clouds = [];
+
+    for (var i = 0; i < 3; i++) {
+      this.addCloud(240 + Math.random() * 180);
+    }
+
+    this.cloudTimer = 400 + Math.random() * 3000;
   }
 
   _createClass(Sky, [{
@@ -637,12 +797,87 @@ var Sky = (function () {
           this.lightnessDirection = 1;
         }
       }
+
+      this.cloudTimer -= deltaTime;
+
+      if (this.cloudTimer <= 0 && this.game.started) {
+        this.addCloud(this.game.yOffset - 300);
+        this.cloudTimer = 400 + Math.random() * 3000;
+      }
+
+      var _iteratorNormalCompletion = true;
+      var _didIteratorError = false;
+      var _iteratorError = undefined;
+
+      try {
+        for (var _iterator = this.clouds[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+          var cloud = _step.value;
+
+          cloud.update(deltaTime);
+        }
+      } catch (err) {
+        _didIteratorError = true;
+        _iteratorError = err;
+      } finally {
+        try {
+          if (!_iteratorNormalCompletion && _iterator.return) {
+            _iterator.return();
+          }
+        } finally {
+          if (_didIteratorError) {
+            throw _iteratorError;
+          }
+        }
+      }
     }
   }, {
     key: 'draw',
-    value: function draw(context) {
+    value: function draw(context, xOffset, yOffset) {
       context.fillStyle = 'hsl(' + Math.round(this.hue) + ', ' + Math.round(this.saturation) + '%, ' + Math.round(this.lightness) + '%)';
       context.fillRect(0, 0, context.canvas.width, context.canvas.height);
+
+      var _iteratorNormalCompletion2 = true;
+      var _didIteratorError2 = false;
+      var _iteratorError2 = undefined;
+
+      try {
+        for (var _iterator2 = this.clouds[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+          var cloud = _step2.value;
+
+          cloud.draw(context, xOffset, yOffset);
+        }
+      } catch (err) {
+        _didIteratorError2 = true;
+        _iteratorError2 = err;
+      } finally {
+        try {
+          if (!_iteratorNormalCompletion2 && _iterator2.return) {
+            _iterator2.return();
+          }
+        } finally {
+          if (_didIteratorError2) {
+            throw _iteratorError2;
+          }
+        }
+      }
+    }
+  }, {
+    key: 'addCloud',
+    value: function addCloud(y) {
+      var x = Math.random() * 640;
+      var xSpeed = -0.05 + Math.random() * 0.1;
+      if (this.clouds.length < 10) {
+        this.clouds.push(new _cloud2.default(x, y, xSpeed));
+      } else {
+        for (var c = 0; c < this.clouds.length - 1; c++) {
+          this.clouds[c].x = this.clouds[c + 1].x;
+          this.clouds[c].y = this.clouds[c + 1].y;
+          this.clouds[c].xSpeed = this.clouds[c + 1].xSpeed;
+        }
+        this.clouds[this.clouds.length - 1].x = x;
+        this.clouds[this.clouds.length - 1].y = y;
+        this.clouds[this.clouds.length - 1].xSpeed = xSpeed;
+      }
     }
   }]);
 
@@ -650,7 +885,7 @@ var Sky = (function () {
 })();
 
 exports.default = Sky;
-},{}],9:[function(require,module,exports){
+},{"./cloud":3}],12:[function(require,module,exports){
 'use strict';
 
 var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
@@ -738,7 +973,47 @@ var Splitter = (function () {
 })();
 
 exports.default = Splitter;
-},{"./get_image":4}],10:[function(require,module,exports){
+},{"./get_image":5}],13:[function(require,module,exports){
+'use strict';
+
+var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var Title = (function () {
+  function Title() {
+    var _this = this;
+
+    _classCallCheck(this, Title);
+
+    this.started = false;
+
+    addEventListener('keyup', function (event) {
+      if (event.which === 37 || event.which === 39) {
+        _this.started = true;
+      }
+    });
+  }
+
+  _createClass(Title, [{
+    key: 'update',
+    value: function update(deltaTime) {}
+  }, {
+    key: 'draw',
+    value: function draw(context) {
+      context.fillText('Infinitree', 100, 100);
+    }
+  }]);
+
+  return Title;
+})();
+
+exports.default = Title;
+},{}],14:[function(require,module,exports){
 'use strict';
 
 var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
@@ -783,6 +1058,7 @@ var Tree = (function () {
     this.rightDown = false;
 
     this.xSpeed = 0;
+    this.yOffset = this.branches[0].y - 240;
 
     addEventListener('keydown', function (event) {
       if (event.which === 37) {
@@ -984,4 +1260,4 @@ var Tree = (function () {
 })();
 
 exports.default = Tree;
-},{"./branch":2,"./splitter":9}]},{},[1]);
+},{"./branch":2,"./splitter":12}]},{},[1]);
