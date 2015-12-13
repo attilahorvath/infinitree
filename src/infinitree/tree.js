@@ -76,12 +76,12 @@ class Tree {
   }
 
   draw(context) {
-    for (let branch of this.branches) {
-      branch.draw(context, this.yOffset);
-    }
-
     for (let splitter of this.splitters) {
       splitter.draw(context, this.yOffset);
+    }
+
+    for (let branch of this.branches) {
+      branch.draw(context, this.yOffset);
     }
   }
 

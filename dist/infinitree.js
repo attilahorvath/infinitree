@@ -49,60 +49,64 @@ var Branch = (function () {
 
     this.sectionTimer = 0;
     this.lastLeaf = 0;
+
+    this.alive = true;
   }
 
   _createClass(Branch, [{
     key: 'update',
     value: function update(deltaTime) {
-      this.sectionTimer += deltaTime;
+      if (this.alive) {
+        this.sectionTimer += deltaTime;
 
-      while (this.sectionTimer >= this.tree.growthInterval) {
-        if (this.targetX > 0) {
-          this.x -= 5;
-          this.targetX -= 0.5;
-        } else if (this.targetX < 0) {
-          this.x += 5;
-          this.targetX += 0.5;
-        }
-
-        this.y -= 5;
-
-        this.addSection(this.x, this.y, this.lastX, this.lastY);
-
-        if (this.lastLeaf > 3 && Math.random() > 0.9) {
-          this.addLeaf(this.x, this.y, this.lastX, this.lastY);
-          this.lastLeaf = 0;
-        } else {
-          this.lastLeaf++;
-        }
-
-        this.lastX = this.x;
-        this.lastY = this.y;
-
-        this.sectionTimer = this.tree.growthInterval - this.sectionTimer;
-      }
-
-      var _iteratorNormalCompletion = true;
-      var _didIteratorError = false;
-      var _iteratorError = undefined;
-
-      try {
-        for (var _iterator = this.sections[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-          var section = _step.value;
-
-          section.update(deltaTime);
-        }
-      } catch (err) {
-        _didIteratorError = true;
-        _iteratorError = err;
-      } finally {
-        try {
-          if (!_iteratorNormalCompletion && _iterator.return) {
-            _iterator.return();
+        while (this.sectionTimer >= this.tree.growthInterval) {
+          if (this.targetX > 0) {
+            this.x -= 5;
+            this.targetX -= 0.5;
+          } else if (this.targetX < 0) {
+            this.x += 5;
+            this.targetX += 0.5;
           }
+
+          this.y -= 5;
+
+          this.addSection(this.x, this.y, this.lastX, this.lastY);
+
+          if (this.lastLeaf > 3 && Math.random() > 0.9) {
+            this.addLeaf(this.x, this.y, this.lastX, this.lastY);
+            this.lastLeaf = 0;
+          } else {
+            this.lastLeaf++;
+          }
+
+          this.lastX = this.x;
+          this.lastY = this.y;
+
+          this.sectionTimer = this.tree.growthInterval - this.sectionTimer;
+        }
+
+        var _iteratorNormalCompletion = true;
+        var _didIteratorError = false;
+        var _iteratorError = undefined;
+
+        try {
+          for (var _iterator = this.sections[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+            var section = _step.value;
+
+            section.update(deltaTime);
+          }
+        } catch (err) {
+          _didIteratorError = true;
+          _iteratorError = err;
         } finally {
-          if (_didIteratorError) {
-            throw _iteratorError;
+          try {
+            if (!_iteratorNormalCompletion && _iterator.return) {
+              _iterator.return();
+            }
+          } finally {
+            if (_didIteratorError) {
+              throw _iteratorError;
+            }
           }
         }
       }
@@ -760,10 +764,10 @@ var Tree = (function () {
       var _iteratorError5 = undefined;
 
       try {
-        for (var _iterator5 = this.branches[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
-          var branch = _step5.value;
+        for (var _iterator5 = this.splitters[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
+          var splitter = _step5.value;
 
-          branch.draw(context, this.yOffset);
+          splitter.draw(context, this.yOffset);
         }
       } catch (err) {
         _didIteratorError5 = true;
@@ -785,10 +789,10 @@ var Tree = (function () {
       var _iteratorError6 = undefined;
 
       try {
-        for (var _iterator6 = this.splitters[Symbol.iterator](), _step6; !(_iteratorNormalCompletion6 = (_step6 = _iterator6.next()).done); _iteratorNormalCompletion6 = true) {
-          var splitter = _step6.value;
+        for (var _iterator6 = this.branches[Symbol.iterator](), _step6; !(_iteratorNormalCompletion6 = (_step6 = _iterator6.next()).done); _iteratorNormalCompletion6 = true) {
+          var branch = _step6.value;
 
-          splitter.draw(context, this.yOffset);
+          branch.draw(context, this.yOffset);
         }
       } catch (err) {
         _didIteratorError6 = true;
