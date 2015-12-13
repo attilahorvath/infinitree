@@ -59,7 +59,7 @@ var Branch = (function () {
       if (this.alive) {
         this.sectionTimer += deltaTime;
 
-        while (this.sectionTimer >= this.tree.growthInterval) {
+        if (this.sectionTimer >= this.tree.growthInterval) {
           if (this.targetX > 0) {
             this.x -= 5;
             this.targetX -= 0.5;
@@ -82,7 +82,7 @@ var Branch = (function () {
           this.lastX = this.x;
           this.lastY = this.y;
 
-          this.sectionTimer = this.tree.growthInterval - this.sectionTimer;
+          this.sectionTimer -= this.tree.growthInterval;
         }
 
         var _iteratorNormalCompletion = true;
@@ -113,9 +113,9 @@ var Branch = (function () {
     }
   }, {
     key: 'draw',
-    value: function draw(context, yOffset) {
+    value: function draw(context, xOffset, yOffset) {
       for (var i = 0; i < this.sections.length; i++) {
-        this.sections[i].draw(context, yOffset, i === this.sections.length - 1);
+        this.sections[i].draw(context, xOffset, yOffset, i === this.sections.length - 1);
       }
 
       var _iteratorNormalCompletion2 = true;
@@ -126,7 +126,7 @@ var Branch = (function () {
         for (var _iterator2 = this.leaves[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
           var leaf = _step2.value;
 
-          leaf.draw(context, yOffset);
+          leaf.draw(context, xOffset, yOffset);
         }
       } catch (err) {
         _didIteratorError2 = true;
@@ -188,7 +188,7 @@ var Branch = (function () {
 })();
 
 exports.default = Branch;
-},{"./leaf":5,"./section":6}],3:[function(require,module,exports){
+},{"./leaf":5,"./section":7}],3:[function(require,module,exports){
 'use strict';
 
 var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
@@ -204,6 +204,10 @@ var _sky2 = _interopRequireDefault(_sky);
 var _tree = require('./tree');
 
 var _tree2 = _interopRequireDefault(_tree);
+
+var _particle = require('./particle');
+
+var _particle2 = _interopRequireDefault(_particle);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -223,7 +227,14 @@ var Game = (function () {
     this.sky = new _sky2.default(this);
     this.tree = new _tree2.default(this);
 
+    this.particles = [];
+
     this.score = 0;
+
+    this.xOffset = 0;
+    this.yOffset = 0;
+
+    this.shakeTimer = 0;
 
     this.lastTime = performance.now();
   }
@@ -250,6 +261,37 @@ var Game = (function () {
     value: function update(deltaTime) {
       this.sky.update(deltaTime);
       this.tree.update(deltaTime);
+
+      this.yOffset = this.tree.yOffset;
+
+      var _iteratorNormalCompletion = true;
+      var _didIteratorError = false;
+      var _iteratorError = undefined;
+
+      try {
+        for (var _iterator = this.particles[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+          var particle = _step.value;
+
+          particle.update(deltaTime);
+        }
+      } catch (err) {
+        _didIteratorError = true;
+        _iteratorError = err;
+      } finally {
+        try {
+          if (!_iteratorNormalCompletion && _iterator.return) {
+            _iterator.return();
+          }
+        } finally {
+          if (_didIteratorError) {
+            throw _iteratorError;
+          }
+        }
+      }
+
+      if (this.shakeTimer > 0) {
+        this.shakeTimer -= deltaTime;
+      }
     }
   }, {
     key: 'draw',
@@ -257,8 +299,41 @@ var Game = (function () {
       this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
       this.context.translate(0, 0);
 
+      var xOffset = this.xOffset;
+      var yOffset = this.yOffset;
+
+      if (this.shakeTimer > 0) {
+        xOffset += -5 + Math.round(10 * Math.random() % 10);
+        yOffset += -5 + Math.round(10 * Math.random() % 10);
+      }
+
       this.sky.draw(this.context);
-      this.tree.draw(this.context);
+      this.tree.draw(this.context, xOffset, yOffset);
+
+      var _iteratorNormalCompletion2 = true;
+      var _didIteratorError2 = false;
+      var _iteratorError2 = undefined;
+
+      try {
+        for (var _iterator2 = this.particles[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+          var particle = _step2.value;
+
+          particle.draw(this.context, xOffset, yOffset);
+        }
+      } catch (err) {
+        _didIteratorError2 = true;
+        _iteratorError2 = err;
+      } finally {
+        try {
+          if (!_iteratorNormalCompletion2 && _iterator2.return) {
+            _iterator2.return();
+          }
+        } finally {
+          if (_didIteratorError2) {
+            throw _iteratorError2;
+          }
+        }
+      }
 
       this.context.font = '24px monospace';
       this.context.textBaseline = 'top';
@@ -267,13 +342,48 @@ var Game = (function () {
 
       this.context.setTransform(1, 0, 0, 1, 0, 0);
     }
+  }, {
+    key: 'shake',
+    value: function shake(interval) {
+      this.shakeTimer += interval;
+    }
+  }, {
+    key: 'emitParticles',
+    value: function emitParticles(x, y, type, count) {
+      for (var i = 0; i < count; i++) {
+        var xSpeed = (Math.random() > 0.5 ? 1 : -1) * (0.1 + Math.random() * 0.4);
+        var ySpeed = (Math.random() > 0.5 ? 1 : -1) * (0.1 + Math.random() * 0.4);
+        this.addParticle(x, y, xSpeed, ySpeed, type);
+      }
+    }
+  }, {
+    key: 'addParticle',
+    value: function addParticle(x, y, xSpeed, ySpeed, type) {
+      if (this.particles.length < 100) {
+        this.particles.push(new _particle2.default(x, y, xSpeed, ySpeed, type));
+      } else {
+        for (var p = 0; p < this.particles.length - 1; p++) {
+          this.particles[p].x = this.particles[p + 1].x;
+          this.particles[p].y = this.particles[p + 1].y;
+          this.particles[p].xSpeed = this.particles[p + 1].xSpeed;
+          this.particles[p].ySpeed = this.particles[p + 1].ySpeed;
+          this.particles[p].type = this.particles[p + 1].type;
+        }
+
+        this.particles[this.particles.length - 1].x = x;
+        this.particles[this.particles.length - 1].y = y;
+        this.particles[this.particles.length - 1].xSpeed = xSpeed;
+        this.particles[this.particles.length - 1].ySpeed = ySpeed;
+        this.particles[this.particles.length - 1].type = type;
+      }
+    }
   }]);
 
   return Game;
 })();
 
 exports.default = Game;
-},{"./sky":7,"./tree":9}],4:[function(require,module,exports){
+},{"./particle":6,"./sky":8,"./tree":10}],4:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -334,8 +444,8 @@ var Leaf = (function () {
 
   _createClass(Leaf, [{
     key: 'draw',
-    value: function draw(context, yOffset) {
-      context.translate(this.x + (this.side === 1 ? 10 : -10), this.y - yOffset);
+    value: function draw(context, xOffset, yOffset) {
+      context.translate(this.x + (this.side === 1 ? 10 : -10) - xOffset, this.y - yOffset);
       context.rotate(this.angle);
 
       var image = this.side === 1 ? (0, _get_image2.default)('images/right_leaf.png') : (0, _get_image2.default)('images/left_leaf.png');
@@ -371,6 +481,58 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
+var Particle = (function () {
+  function Particle(x, y, xSpeed, ySpeed, type) {
+    _classCallCheck(this, Particle);
+
+    this.x = x;
+    this.y = y;
+    this.xSpeed = xSpeed;
+    this.ySpeed = ySpeed;
+    this.type = type;
+  }
+
+  _createClass(Particle, [{
+    key: 'update',
+    value: function update(deltaTime) {
+      this.x += this.xSpeed * deltaTime;
+      this.y += this.ySpeed * deltaTime;
+    }
+  }, {
+    key: 'draw',
+    value: function draw(context, xOffset, yOffset) {
+      var image = (0, _get_image2.default)(this.type);
+
+      if (!image) {
+        context.fillStyle = 'black';
+        context.fillRect(this.x - xOffset, this.y - yOffset, 5, 5);
+      } else {
+        context.drawImage(image, this.x - xOffset, this.y - yOffset);
+      }
+    }
+  }]);
+
+  return Particle;
+})();
+
+exports.default = Particle;
+},{"./get_image":4}],7:[function(require,module,exports){
+'use strict';
+
+var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _get_image = require('./get_image');
+
+var _get_image2 = _interopRequireDefault(_get_image);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
 var Section = (function () {
   function Section(branch, x, y, angle) {
     _classCallCheck(this, Section);
@@ -387,8 +549,8 @@ var Section = (function () {
     value: function update(deltaTime) {}
   }, {
     key: 'draw',
-    value: function draw(context, yOffset, endSection) {
-      context.translate(this.x, this.y - yOffset);
+    value: function draw(context, xOffset, yOffset, endSection) {
+      context.translate(this.x - xOffset, this.y - yOffset);
       context.rotate(this.angle);
 
       var image = endSection ? (0, _get_image2.default)('images/end_section.png') : (0, _get_image2.default)('images/section.png');
@@ -407,7 +569,7 @@ var Section = (function () {
 })();
 
 exports.default = Section;
-},{"./get_image":4}],7:[function(require,module,exports){
+},{"./get_image":4}],8:[function(require,module,exports){
 'use strict';
 
 var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
@@ -488,7 +650,7 @@ var Sky = (function () {
 })();
 
 exports.default = Sky;
-},{}],8:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 'use strict';
 
 var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
@@ -532,6 +694,8 @@ var Splitter = (function () {
             if (Math.abs(endSection.x - this.x) <= 25 && Math.abs(endSection.y - this.y) <= 25) {
               this.tree.splitBranch(branch);
               this.active = false;
+              this.tree.game.shake(400);
+              this.tree.game.emitParticles(this.x, this.y, 'images/branch_particle.png', 25);
               return;
             }
           }
@@ -553,9 +717,9 @@ var Splitter = (function () {
     }
   }, {
     key: 'draw',
-    value: function draw(context, yOffset) {
+    value: function draw(context, xOffset, yOffset) {
       if (this.active) {
-        context.translate(this.x + (this.side === 1 ? 10 : -10), this.y - yOffset);
+        context.translate(this.x + (this.side === 1 ? 10 : -10) - xOffset, this.y - yOffset);
 
         var image = (0, _get_image2.default)('images/splitter.png');
 
@@ -574,7 +738,7 @@ var Splitter = (function () {
 })();
 
 exports.default = Splitter;
-},{"./get_image":4}],9:[function(require,module,exports){
+},{"./get_image":4}],10:[function(require,module,exports){
 'use strict';
 
 var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
@@ -618,6 +782,8 @@ var Tree = (function () {
     this.leftDown = false;
     this.rightDown = false;
 
+    this.xSpeed = 0;
+
     addEventListener('keydown', function (event) {
       if (event.which === 37) {
         _this.leftDown = true;
@@ -639,57 +805,78 @@ var Tree = (function () {
     key: 'update',
     value: function update(deltaTime) {
       if (this.leftDown) {
-        var _iteratorNormalCompletion = true;
-        var _didIteratorError = false;
-        var _iteratorError = undefined;
-
-        try {
-          for (var _iterator = this.branches[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-            var branch = _step.value;
-
-            branch.x -= 0.1 * deltaTime;
-          }
-        } catch (err) {
-          _didIteratorError = true;
-          _iteratorError = err;
-        } finally {
-          try {
-            if (!_iteratorNormalCompletion && _iterator.return) {
-              _iterator.return();
-            }
-          } finally {
-            if (_didIteratorError) {
-              throw _iteratorError;
-            }
-          }
+        this.xSpeed -= 0.001 * deltaTime;
+        if (this.xSpeed < -0.3) {
+          this.xSpeed = -0.3;
         }
       }
 
       if (this.rightDown) {
-        var _iteratorNormalCompletion2 = true;
-        var _didIteratorError2 = false;
-        var _iteratorError2 = undefined;
+        this.xSpeed += 0.001 * deltaTime;
+        if (this.xSpeed > 0.3) {
+          this.xSpeed = 0.3;
+        }
+      }
 
+      var _iteratorNormalCompletion = true;
+      var _didIteratorError = false;
+      var _iteratorError = undefined;
+
+      try {
+        for (var _iterator = this.branches[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+          var branch = _step.value;
+
+          branch.x += this.xSpeed * deltaTime;
+        }
+      } catch (err) {
+        _didIteratorError = true;
+        _iteratorError = err;
+      } finally {
         try {
-          for (var _iterator2 = this.branches[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
-            var branch = _step2.value;
-
-            branch.x += 0.1 * deltaTime;
+          if (!_iteratorNormalCompletion && _iterator.return) {
+            _iterator.return();
           }
-        } catch (err) {
-          _didIteratorError2 = true;
-          _iteratorError2 = err;
         } finally {
-          try {
-            if (!_iteratorNormalCompletion2 && _iterator2.return) {
-              _iterator2.return();
-            }
-          } finally {
-            if (_didIteratorError2) {
-              throw _iteratorError2;
-            }
+          if (_didIteratorError) {
+            throw _iteratorError;
           }
         }
+      }
+
+      var _iteratorNormalCompletion2 = true;
+      var _didIteratorError2 = false;
+      var _iteratorError2 = undefined;
+
+      try {
+        for (var _iterator2 = this.branches[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+          var branch = _step2.value;
+
+          branch.update(deltaTime);
+        }
+      } catch (err) {
+        _didIteratorError2 = true;
+        _iteratorError2 = err;
+      } finally {
+        try {
+          if (!_iteratorNormalCompletion2 && _iterator2.return) {
+            _iterator2.return();
+          }
+        } finally {
+          if (_didIteratorError2) {
+            throw _iteratorError2;
+          }
+        }
+      }
+
+      this.yOffset = this.branches[0].y - 240;
+
+      this.lastSplitter += deltaTime;
+
+      if (this.lastSplitter >= 1000) {
+        if (Math.random() > 0.8) {
+          this.splitters.push(new _splitter2.default(this, 640 * Math.random() % 640, this.yOffset - 300));
+        }
+        this.lastSplitter = 0;
       }
 
       var _iteratorNormalCompletion3 = true;
@@ -697,10 +884,10 @@ var Tree = (function () {
       var _iteratorError3 = undefined;
 
       try {
-        for (var _iterator3 = this.branches[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
-          var branch = _step3.value;
+        for (var _iterator3 = this.splitters[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
+          var splitter = _step3.value;
 
-          branch.update(deltaTime);
+          splitter.update(deltaTime);
         }
       } catch (err) {
         _didIteratorError3 = true;
@@ -717,17 +904,12 @@ var Tree = (function () {
         }
       }
 
-      this.yOffset = this.branches[0].y - 240;
-
-      this.lastSplitter += deltaTime;
-
-      if (this.lastSplitter >= 1000) {
-        if (Math.random() > 0.8) {
-          this.splitters.push(new _splitter2.default(this, 640 * Math.random() % 640, this.yOffset - 300));
-        }
-        this.lastSplitter = 0;
-      }
-
+      this.game.score += deltaTime / 10;
+      this.game.score = Math.floor(this.game.score);
+    }
+  }, {
+    key: 'draw',
+    value: function draw(context, xOffset, yOffset) {
       var _iteratorNormalCompletion4 = true;
       var _didIteratorError4 = false;
       var _iteratorError4 = undefined;
@@ -736,7 +918,7 @@ var Tree = (function () {
         for (var _iterator4 = this.splitters[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
           var splitter = _step4.value;
 
-          splitter.update(deltaTime);
+          splitter.draw(context, xOffset, yOffset);
         }
       } catch (err) {
         _didIteratorError4 = true;
@@ -753,21 +935,15 @@ var Tree = (function () {
         }
       }
 
-      this.game.score += deltaTime / 10;
-      this.game.score = Math.floor(this.game.score);
-    }
-  }, {
-    key: 'draw',
-    value: function draw(context) {
       var _iteratorNormalCompletion5 = true;
       var _didIteratorError5 = false;
       var _iteratorError5 = undefined;
 
       try {
-        for (var _iterator5 = this.splitters[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
-          var splitter = _step5.value;
+        for (var _iterator5 = this.branches[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
+          var branch = _step5.value;
 
-          splitter.draw(context, this.yOffset);
+          branch.draw(context, xOffset, yOffset);
         }
       } catch (err) {
         _didIteratorError5 = true;
@@ -780,31 +956,6 @@ var Tree = (function () {
         } finally {
           if (_didIteratorError5) {
             throw _iteratorError5;
-          }
-        }
-      }
-
-      var _iteratorNormalCompletion6 = true;
-      var _didIteratorError6 = false;
-      var _iteratorError6 = undefined;
-
-      try {
-        for (var _iterator6 = this.branches[Symbol.iterator](), _step6; !(_iteratorNormalCompletion6 = (_step6 = _iterator6.next()).done); _iteratorNormalCompletion6 = true) {
-          var branch = _step6.value;
-
-          branch.draw(context, this.yOffset);
-        }
-      } catch (err) {
-        _didIteratorError6 = true;
-        _iteratorError6 = err;
-      } finally {
-        try {
-          if (!_iteratorNormalCompletion6 && _iterator6.return) {
-            _iterator6.return();
-          }
-        } finally {
-          if (_didIteratorError6) {
-            throw _iteratorError6;
           }
         }
       }
@@ -833,4 +984,4 @@ var Tree = (function () {
 })();
 
 exports.default = Tree;
-},{"./branch":2,"./splitter":8}]},{},[1]);
+},{"./branch":2,"./splitter":9}]},{},[1]);

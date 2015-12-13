@@ -13,8 +13,8 @@ class Section {
 
   update(deltaTime) {}
 
-  draw(context, yOffset, endSection) {
-    context.translate(this.x, this.y - yOffset);
+  draw(context, xOffset, yOffset, endSection) {
+    context.translate(this.x - xOffset, this.y - yOffset);
     context.rotate(this.angle);
 
     let image = endSection ? getImage('images/end_section.png') : getImage('images/section.png');

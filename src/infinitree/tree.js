@@ -22,6 +22,8 @@ class Tree {
     this.leftDown = false;
     this.rightDown = false;
 
+    this.xSpeed = 0;
+
     addEventListener('keydown', event => {
       if (event.which === 37) {
         this.leftDown = true;
@@ -41,15 +43,21 @@ class Tree {
 
   update(deltaTime) {
     if (this.leftDown) {
-      for (let branch of this.branches) {
-        branch.x -= 0.1 * deltaTime;
+      this.xSpeed -= 0.001 * deltaTime;
+      if (this.xSpeed < -0.3) {
+        this.xSpeed = -0.3;
       }
     }
 
     if (this.rightDown) {
-      for (let branch of this.branches) {
-        branch.x += 0.1 * deltaTime;
+      this.xSpeed += 0.001 * deltaTime;
+      if (this.xSpeed > 0.3) {
+        this.xSpeed = 0.3;
       }
+    }
+
+    for (let branch of this.branches) {
+      branch.x += this.xSpeed * deltaTime;
     }
 
     for (let branch of this.branches) {
@@ -75,13 +83,13 @@ class Tree {
     this.game.score = Math.floor(this.game.score);
   }
 
-  draw(context) {
+  draw(context, xOffset, yOffset) {
     for (let splitter of this.splitters) {
-      splitter.draw(context, this.yOffset);
+      splitter.draw(context, xOffset, yOffset);
     }
 
     for (let branch of this.branches) {
-      branch.draw(context, this.yOffset);
+      branch.draw(context, xOffset, yOffset);
     }
   }
 

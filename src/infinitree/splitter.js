@@ -18,15 +18,17 @@ class Splitter {
         if (Math.abs(endSection.x - this.x) <= 25 && Math.abs(endSection.y - this.y) <= 25) {
           this.tree.splitBranch(branch);
           this.active = false;
+          this.tree.game.shake(400);
+          this.tree.game.emitParticles(this.x, this.y, 'images/branch_particle.png', 25);
           return;
         }
       }
     }
   }
 
-  draw(context, yOffset) {
+  draw(context, xOffset, yOffset) {
     if (this.active) {
-      context.translate(this.x + (this.side === 1 ? 10 : -10), this.y - yOffset);
+      context.translate(this.x + (this.side === 1 ? 10 : -10) - xOffset, this.y - yOffset);
 
       let image = getImage('images/splitter.png');
 

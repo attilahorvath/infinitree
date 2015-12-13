@@ -28,7 +28,7 @@ class Branch {
     if (this.alive) {
       this.sectionTimer += deltaTime;
 
-      while (this.sectionTimer >= this.tree.growthInterval) {
+      if (this.sectionTimer >= this.tree.growthInterval) {
         if (this.targetX > 0) {
           this.x -= 5;
           this.targetX -= 0.5;
@@ -51,7 +51,7 @@ class Branch {
         this.lastX = this.x;
         this.lastY = this.y;
 
-        this.sectionTimer = this.tree.growthInterval - this.sectionTimer;
+        this.sectionTimer -= this.tree.growthInterval;
       }
 
       for (let section of this.sections) {
@@ -60,13 +60,13 @@ class Branch {
     }
   }
 
-  draw(context, yOffset) {
+  draw(context, xOffset, yOffset) {
     for (let i = 0; i < this.sections.length; i++) {
-      this.sections[i].draw(context, yOffset, i === this.sections.length - 1);
+      this.sections[i].draw(context, xOffset, yOffset, i === this.sections.length - 1);
     }
 
     for (let leaf of this.leaves) {
-      leaf.draw(context, yOffset);
+      leaf.draw(context, xOffset, yOffset);
     }
   }
 
