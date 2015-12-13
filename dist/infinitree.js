@@ -26,6 +26,10 @@ var _leaf = require('./leaf');
 
 var _leaf2 = _interopRequireDefault(_leaf);
 
+var _play_sound = require('./play_sound');
+
+var _play_sound2 = _interopRequireDefault(_play_sound);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -111,6 +115,13 @@ var Branch = (function () {
             }
           }
         }
+
+        if (this.x < -10 || this.x > 650) {
+          (0, _play_sound2.default)('audio/hit.mp3');
+          this.tree.game.shake(400);
+          this.tree.game.emitParticles(this.x, this.y, 'images/obstacle_particle.png', 25);
+          this.alive = false;
+        }
       }
     }
   }, {
@@ -190,7 +201,7 @@ var Branch = (function () {
 })();
 
 exports.default = Branch;
-},{"./leaf":7,"./section":10}],3:[function(require,module,exports){
+},{"./leaf":8,"./play_sound":12,"./section":14}],3:[function(require,module,exports){
 'use strict';
 
 var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
@@ -238,7 +249,7 @@ var Cloud = (function () {
 })();
 
 exports.default = Cloud;
-},{"./get_image":5}],4:[function(require,module,exports){
+},{"./get_image":6}],4:[function(require,module,exports){
 'use strict';
 
 var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
@@ -263,6 +274,10 @@ var _tree = require('./tree');
 
 var _tree2 = _interopRequireDefault(_tree);
 
+var _obstacle = require('./obstacle');
+
+var _obstacle2 = _interopRequireDefault(_obstacle);
+
 var _particle = require('./particle');
 
 var _particle2 = _interopRequireDefault(_particle);
@@ -271,6 +286,14 @@ var _music = require('./music');
 
 var _music2 = _interopRequireDefault(_music);
 
+var _game_over = require('./game_over');
+
+var _game_over2 = _interopRequireDefault(_game_over);
+
+var _preload_images = require('./preload_images');
+
+var _preload_images2 = _interopRequireDefault(_preload_images);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -278,6 +301,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 var Game = (function () {
   function Game() {
     _classCallCheck(this, Game);
+
+    (0, _preload_images2.default)(['images/branch_particle.png', 'images/cloud.png', 'images/end_section.png', 'images/ground_top.png', 'images/ground.png', 'images/left_leaf.png', 'images/obstacle0.png', 'images/obstacle1.png', 'images/right_leaf.png', 'images/section.png', 'images/splitter.png']);
 
     this.canvas = document.createElement('canvas');
     this.canvas.width = 640;
@@ -290,10 +315,12 @@ var Game = (function () {
     this.ground = new _ground2.default();
 
     this.started = false;
+    this.over = false;
 
     this.sky = new _sky2.default(this);
     this.tree = new _tree2.default(this);
 
+    this.obstacles = [];
     this.particles = [];
 
     this.score = 0;
@@ -301,14 +328,42 @@ var Game = (function () {
     this.xOffset = 0;
     this.yOffset = 0;
 
+    this.obstacleTimer = 1500;
     this.shakeTimer = 0;
 
     this.music = new _music2.default();
+
+    this.gameOver = new _game_over2.default(this);
 
     this.lastTime = performance.now();
   }
 
   _createClass(Game, [{
+    key: 'start',
+    value: function start() {
+      this.title = new _title2.default();
+      this.ground = new _ground2.default();
+
+      this.started = false;
+      this.over = false;
+
+      this.sky = new _sky2.default(this);
+      this.tree = new _tree2.default(this);
+
+      this.obstacles = [];
+      this.particles = [];
+
+      this.score = 0;
+
+      this.xOffset = 0;
+      this.yOffset = 0;
+
+      this.obstacleTimer = 1500;
+      this.shakeTimer = 0;
+
+      this.gameOver = new _game_over2.default(this);
+    }
+  }, {
     key: 'run',
     value: function run() {
       var _this = this;
@@ -336,15 +391,32 @@ var Game = (function () {
 
       this.yOffset = this.tree.yOffset;
 
+      if (this.started) {
+        this.obstacleTimer -= deltaTime;
+      }
+
+      if (this.obstacleTimer <= 0 && !this.over) {
+        var multiple = Math.random() > 0.8;
+        for (var i = 0; i < (multiple ? 2 : 1); i++) {
+          var type = Math.floor(2 * Math.random() % 2);
+          var x = Math.random() * 600;
+          if (multiple) {
+            x = i === 0 ? Math.random() * 250 : 350 + Math.random() * 250;
+          }
+          this.addObstacle(x, this.yOffset - 100, 'images/obstacle' + type + '.png');
+        }
+        this.obstacleTimer = 400 + Math.random() * 1000;
+      }
+
       var _iteratorNormalCompletion = true;
       var _didIteratorError = false;
       var _iteratorError = undefined;
 
       try {
-        for (var _iterator = this.particles[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-          var particle = _step.value;
+        for (var _iterator = this.obstacles[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+          var obstacle = _step.value;
 
-          particle.update(deltaTime);
+          obstacle.update(deltaTime);
         }
       } catch (err) {
         _didIteratorError = true;
@@ -361,9 +433,49 @@ var Game = (function () {
         }
       }
 
+      var _iteratorNormalCompletion2 = true;
+      var _didIteratorError2 = false;
+      var _iteratorError2 = undefined;
+
+      try {
+        for (var _iterator2 = this.particles[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+          var particle = _step2.value;
+
+          particle.update(deltaTime);
+        }
+      } catch (err) {
+        _didIteratorError2 = true;
+        _iteratorError2 = err;
+      } finally {
+        try {
+          if (!_iteratorNormalCompletion2 && _iterator2.return) {
+            _iterator2.return();
+          }
+        } finally {
+          if (_didIteratorError2) {
+            throw _iteratorError2;
+          }
+        }
+      }
+
       if (this.shakeTimer > 0) {
         this.shakeTimer -= deltaTime;
       }
+
+      if (!this.started) {
+        this.title.update(deltaTime);
+      }
+
+      if (!this.tree.alive) {
+        this.gameOver.over = true;
+      }
+
+      if (this.over) {
+        this.gameOver.update(deltaTime);
+      }
+
+      this.started = this.title.started;
+      this.over = this.gameOver.over;
     }
   }, {
     key: 'draw',
@@ -383,43 +495,84 @@ var Game = (function () {
       this.ground.draw(this.context, xOffset, yOffset);
       this.tree.draw(this.context, xOffset, yOffset);
 
-      var _iteratorNormalCompletion2 = true;
-      var _didIteratorError2 = false;
-      var _iteratorError2 = undefined;
+      var _iteratorNormalCompletion3 = true;
+      var _didIteratorError3 = false;
+      var _iteratorError3 = undefined;
 
       try {
-        for (var _iterator2 = this.particles[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
-          var particle = _step2.value;
+        for (var _iterator3 = this.obstacles[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
+          var obstacle = _step3.value;
+
+          obstacle.draw(this.context, xOffset, yOffset);
+        }
+      } catch (err) {
+        _didIteratorError3 = true;
+        _iteratorError3 = err;
+      } finally {
+        try {
+          if (!_iteratorNormalCompletion3 && _iterator3.return) {
+            _iterator3.return();
+          }
+        } finally {
+          if (_didIteratorError3) {
+            throw _iteratorError3;
+          }
+        }
+      }
+
+      var _iteratorNormalCompletion4 = true;
+      var _didIteratorError4 = false;
+      var _iteratorError4 = undefined;
+
+      try {
+        for (var _iterator4 = this.particles[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
+          var particle = _step4.value;
 
           particle.draw(this.context, xOffset, yOffset);
         }
       } catch (err) {
-        _didIteratorError2 = true;
-        _iteratorError2 = err;
+        _didIteratorError4 = true;
+        _iteratorError4 = err;
       } finally {
         try {
-          if (!_iteratorNormalCompletion2 && _iterator2.return) {
-            _iterator2.return();
+          if (!_iteratorNormalCompletion4 && _iterator4.return) {
+            _iterator4.return();
           }
         } finally {
-          if (_didIteratorError2) {
-            throw _iteratorError2;
+          if (_didIteratorError4) {
+            throw _iteratorError4;
           }
         }
       }
 
-      this.context.font = '24px monospace';
-      this.context.textBaseline = 'top';
-      this.context.fillStyle = 'black';
-      this.context.fillText('Score: ' + this.score, 10, 10);
-
       if (!this.started) {
         this.title.draw(this.context);
+      } else if (!this.over) {
+        this.context.font = '24px monospace';
+        this.context.textBaseline = 'top';
+        this.context.fillStyle = 'black';
+        this.context.fillText('Score: ' + this.score, 10, 10);
+      } else {
+        this.gameOver.draw(this.context);
       }
 
-      this.started = this.title.started;
-
       this.context.setTransform(1, 0, 0, 1, 0, 0);
+    }
+  }, {
+    key: 'addObstacle',
+    value: function addObstacle(x, y, type) {
+      if (this.obstacles.length < 20) {
+        this.obstacles.push(new _obstacle2.default(this, x, y, type));
+      } else {
+        for (var o = 0; o < this.obstacles.length - 1; o++) {
+          this.obstacles[o].x = this.obstacles[o + 1].x;
+          this.obstacles[o].y = this.obstacles[o + 1].y;
+          this.obstacles[o].type = this.obstacles[o + 1].type;
+        }
+        this.obstacles[this.obstacles.length - 1].x = x;
+        this.obstacles[this.obstacles.length - 1].y = y;
+        this.obstacles[this.obstacles.length - 1].type = type;
+      }
     }
   }, {
     key: 'shake',
@@ -462,7 +615,66 @@ var Game = (function () {
 })();
 
 exports.default = Game;
-},{"./ground":6,"./music":8,"./particle":9,"./sky":11,"./title":13,"./tree":14}],5:[function(require,module,exports){
+},{"./game_over":5,"./ground":7,"./music":9,"./obstacle":10,"./particle":11,"./preload_images":13,"./sky":15,"./title":17,"./tree":18}],5:[function(require,module,exports){
+'use strict';
+
+var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var GameOver = (function () {
+  function GameOver(game) {
+    var _this = this;
+
+    _classCallCheck(this, GameOver);
+
+    this.game = game;
+
+    this.over = false;
+    this.timer = 0;
+
+    addEventListener('keydown', function (event) {
+      if (event.which === 37 || event.which === 39) {
+        if (_this.over && _this.timer >= 1000) {
+          _this.game.start();
+          _this.over = false;
+        }
+      }
+    });
+  }
+
+  _createClass(GameOver, [{
+    key: 'update',
+    value: function update(deltaTime) {
+      if (this.over) {
+        this.timer += deltaTime;
+      }
+    }
+  }, {
+    key: 'draw',
+    value: function draw(context) {
+      context.textBaseline = 'top';
+
+      context.fillStyle = 'rgb(82, 42, 14)';
+      context.font = '60px monospace';
+      context.fillText('Game Over', 160, 30);
+
+      context.fillStyle = 'rgb(154, 148, 78)';
+      context.font = '20px monospace';
+      context.fillText('You scored ' + this.game.score.toString() + ' points.', 10, 150);
+      context.fillText('Press [left] or [right] to try again.', 10, 180);
+    }
+  }]);
+
+  return GameOver;
+})();
+
+exports.default = GameOver;
+},{}],6:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -492,7 +704,7 @@ var getImage = function getImage(path) {
 };
 
 exports.default = getImage;
-},{}],6:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 'use strict';
 
 var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
@@ -539,7 +751,7 @@ var Ground = (function () {
 })();
 
 exports.default = Ground;
-},{"./get_image":5}],7:[function(require,module,exports){
+},{"./get_image":6}],8:[function(require,module,exports){
 'use strict';
 
 var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
@@ -590,7 +802,7 @@ var Leaf = (function () {
 })();
 
 exports.default = Leaf;
-},{"./get_image":5}],8:[function(require,module,exports){
+},{"./get_image":6}],9:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -608,7 +820,91 @@ var Music = function Music() {
 };
 
 exports.default = Music;
-},{}],9:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
+'use strict';
+
+var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _get_image = require('./get_image');
+
+var _get_image2 = _interopRequireDefault(_get_image);
+
+var _play_sound = require('./play_sound');
+
+var _play_sound2 = _interopRequireDefault(_play_sound);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var Obstacle = (function () {
+  function Obstacle(game, x, y, type) {
+    _classCallCheck(this, Obstacle);
+
+    this.game = game;
+    this.x = x;
+    this.y = y;
+    this.type = type;
+  }
+
+  _createClass(Obstacle, [{
+    key: 'update',
+    value: function update(deltaTime) {
+      var _iteratorNormalCompletion = true;
+      var _didIteratorError = false;
+      var _iteratorError = undefined;
+
+      try {
+        for (var _iterator = this.game.tree.branches[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+          var branch = _step.value;
+
+          if (branch.alive) {
+            var endSection = branch.sections[branch.sections.length - 1];
+            if (Math.abs(endSection.x - this.x) <= 50 && Math.abs(endSection.y - this.y) <= 50) {
+              (0, _play_sound2.default)('audio/hit.mp3');
+              this.game.shake(400);
+              this.game.emitParticles(this.x, this.y, 'images/obstacle_particle.png', 25);
+              branch.alive = false;
+            }
+          }
+        }
+      } catch (err) {
+        _didIteratorError = true;
+        _iteratorError = err;
+      } finally {
+        try {
+          if (!_iteratorNormalCompletion && _iterator.return) {
+            _iterator.return();
+          }
+        } finally {
+          if (_didIteratorError) {
+            throw _iteratorError;
+          }
+        }
+      }
+    }
+  }, {
+    key: 'draw',
+    value: function draw(context, xOffset, yOffset) {
+      var image = (0, _get_image2.default)(this.type);
+      if (!image) {
+        context.fillStyle = 'black';
+        context.fillRect(this.x - 50 - xOffset, this.y - 50 - yOffset, 100, 100);
+      } else {
+        context.drawImage(image, this.x - 50 - xOffset, this.y - 50 - yOffset);
+      }
+    }
+  }]);
+
+  return Obstacle;
+})();
+
+exports.default = Obstacle;
+},{"./get_image":6,"./play_sound":12}],11:[function(require,module,exports){
 'use strict';
 
 var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
@@ -660,7 +956,61 @@ var Particle = (function () {
 })();
 
 exports.default = Particle;
-},{"./get_image":5}],10:[function(require,module,exports){
+},{"./get_image":6}],12:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+var sounds = new Map();
+
+var playSound = function playSound(path) {
+  var sound = sounds.get(path);
+
+  if (sound) {
+    sound.play();
+  } else {
+    sound = new Audio(path);
+    sound.play();
+  }
+};
+
+exports.default = playSound;
+},{}],13:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+var preloadImages = function preloadImages(images) {
+  var _iteratorNormalCompletion = true;
+  var _didIteratorError = false;
+  var _iteratorError = undefined;
+
+  try {
+    for (var _iterator = images[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+      var image = _step.value;
+
+      new Image().src = image;
+    }
+  } catch (err) {
+    _didIteratorError = true;
+    _iteratorError = err;
+  } finally {
+    try {
+      if (!_iteratorNormalCompletion && _iterator.return) {
+        _iterator.return();
+      }
+    } finally {
+      if (_didIteratorError) {
+        throw _iteratorError;
+      }
+    }
+  }
+};
+
+exports.default = preloadImages;
+},{}],14:[function(require,module,exports){
 'use strict';
 
 var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
@@ -713,7 +1063,7 @@ var Section = (function () {
 })();
 
 exports.default = Section;
-},{"./get_image":5}],11:[function(require,module,exports){
+},{"./get_image":6}],15:[function(require,module,exports){
 'use strict';
 
 var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
@@ -885,7 +1235,7 @@ var Sky = (function () {
 })();
 
 exports.default = Sky;
-},{"./cloud":3}],12:[function(require,module,exports){
+},{"./cloud":3}],16:[function(require,module,exports){
 'use strict';
 
 var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
@@ -897,6 +1247,10 @@ Object.defineProperty(exports, "__esModule", {
 var _get_image = require('./get_image');
 
 var _get_image2 = _interopRequireDefault(_get_image);
+
+var _play_sound = require('./play_sound');
+
+var _play_sound2 = _interopRequireDefault(_play_sound);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -927,6 +1281,7 @@ var Splitter = (function () {
 
             var endSection = branch.sections[branch.sections.length - 1];
             if (Math.abs(endSection.x - this.x) <= 25 && Math.abs(endSection.y - this.y) <= 25) {
+              (0, _play_sound2.default)('audio/split.mp3');
               this.tree.splitBranch(branch);
               this.active = false;
               this.tree.game.shake(400);
@@ -973,7 +1328,7 @@ var Splitter = (function () {
 })();
 
 exports.default = Splitter;
-},{"./get_image":5}],13:[function(require,module,exports){
+},{"./get_image":6,"./play_sound":12}],17:[function(require,module,exports){
 'use strict';
 
 var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
@@ -992,20 +1347,46 @@ var Title = (function () {
 
     this.started = false;
 
-    addEventListener('keyup', function (event) {
+    addEventListener('keydown', function (event) {
       if (event.which === 37 || event.which === 39) {
         _this.started = true;
       }
     });
+
+    this.alpha = 0;
   }
 
   _createClass(Title, [{
     key: 'update',
-    value: function update(deltaTime) {}
+    value: function update(deltaTime) {
+      if (this.alpha < 1) {
+        this.alpha += 0.001 * deltaTime;
+      } else {
+        this.alpha = 1;
+      }
+    }
   }, {
     key: 'draw',
     value: function draw(context) {
-      context.fillText('Infinitree', 100, 100);
+      context.textBaseline = 'top';
+
+      context.fillStyle = 'rgba(82, 42, 14, ' + this.alpha + ')';
+      context.font = '60px monospace';
+      context.fillText('Infinitree', 150, 30);
+
+      context.fillStyle = 'rgba(154, 148, 78, ' + this.alpha + ')';
+      context.font = '20px monospace';
+      context.fillText('Grow to infinity and beyond!', 160, 130);
+      context.fillText('But watch out, there are all kinds of hazards', 60, 160);
+      context.fillText('along the way.', 240, 190);
+
+      context.fillStyle = 'rgba(200, 200, 200, ' + this.alpha + ')';
+      context.font = '18px monospace';
+      context.fillText('Control your growth by the [left] and [right] arrows.', 5, 270);
+      context.fillText('Collect splitters to split your branches.', 5, 300);
+      context.fillText('Avoid obstacles.', 5, 330);
+      context.fillText('Press [left] or [right] to start.', 5, 360);
+      context.fillText('Made by Attila Horvath for Ludum Dare 34.', 5, 450);
     }
   }]);
 
@@ -1013,7 +1394,7 @@ var Title = (function () {
 })();
 
 exports.default = Title;
-},{}],14:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 'use strict';
 
 var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
@@ -1058,7 +1439,11 @@ var Tree = (function () {
     this.rightDown = false;
 
     this.xSpeed = 0;
-    this.yOffset = this.branches[0].y - 240;
+    this.yOffset = this.branches.filter(function (branch) {
+      return branch.alive;
+    })[0].y - 240;
+
+    this.alive = true;
 
     addEventListener('keydown', function (event) {
       if (event.which === 37) {
@@ -1080,108 +1465,125 @@ var Tree = (function () {
   _createClass(Tree, [{
     key: 'update',
     value: function update(deltaTime) {
-      if (this.leftDown) {
-        this.xSpeed -= 0.001 * deltaTime;
-        if (this.xSpeed < -0.3) {
-          this.xSpeed = -0.3;
-        }
+      if (this.branches.filter(function (branch) {
+        return branch.alive;
+      }).length === 0) {
+        this.alive = false;
       }
 
-      if (this.rightDown) {
-        this.xSpeed += 0.001 * deltaTime;
-        if (this.xSpeed > 0.3) {
-          this.xSpeed = 0.3;
+      if (this.alive) {
+        if (this.leftDown) {
+          this.xSpeed -= 0.001 * deltaTime;
+          if (this.xSpeed < -0.3) {
+            this.xSpeed = -0.3;
+          }
         }
-      }
 
-      var _iteratorNormalCompletion = true;
-      var _didIteratorError = false;
-      var _iteratorError = undefined;
-
-      try {
-        for (var _iterator = this.branches[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-          var branch = _step.value;
-
-          branch.x += this.xSpeed * deltaTime;
+        if (this.rightDown) {
+          this.xSpeed += 0.001 * deltaTime;
+          if (this.xSpeed > 0.3) {
+            this.xSpeed = 0.3;
+          }
         }
-      } catch (err) {
-        _didIteratorError = true;
-        _iteratorError = err;
-      } finally {
+
+        var _iteratorNormalCompletion = true;
+        var _didIteratorError = false;
+        var _iteratorError = undefined;
+
         try {
-          if (!_iteratorNormalCompletion && _iterator.return) {
-            _iterator.return();
+          for (var _iterator = this.branches[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+            var branch = _step.value;
+
+            branch.x += this.xSpeed * deltaTime;
           }
+        } catch (err) {
+          _didIteratorError = true;
+          _iteratorError = err;
         } finally {
-          if (_didIteratorError) {
-            throw _iteratorError;
+          try {
+            if (!_iteratorNormalCompletion && _iterator.return) {
+              _iterator.return();
+            }
+          } finally {
+            if (_didIteratorError) {
+              throw _iteratorError;
+            }
           }
         }
-      }
 
-      var _iteratorNormalCompletion2 = true;
-      var _didIteratorError2 = false;
-      var _iteratorError2 = undefined;
+        var _iteratorNormalCompletion2 = true;
+        var _didIteratorError2 = false;
+        var _iteratorError2 = undefined;
 
-      try {
-        for (var _iterator2 = this.branches[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
-          var branch = _step2.value;
-
-          branch.update(deltaTime);
-        }
-      } catch (err) {
-        _didIteratorError2 = true;
-        _iteratorError2 = err;
-      } finally {
         try {
-          if (!_iteratorNormalCompletion2 && _iterator2.return) {
-            _iterator2.return();
+          for (var _iterator2 = this.branches[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+            var branch = _step2.value;
+
+            branch.update(deltaTime);
           }
+        } catch (err) {
+          _didIteratorError2 = true;
+          _iteratorError2 = err;
         } finally {
-          if (_didIteratorError2) {
-            throw _iteratorError2;
+          try {
+            if (!_iteratorNormalCompletion2 && _iterator2.return) {
+              _iterator2.return();
+            }
+          } finally {
+            if (_didIteratorError2) {
+              throw _iteratorError2;
+            }
           }
         }
-      }
 
-      this.yOffset = this.branches[0].y - 240;
-
-      this.lastSplitter += deltaTime;
-
-      if (this.lastSplitter >= 1000) {
-        if (Math.random() > 0.8) {
-          this.splitters.push(new _splitter2.default(this, 640 * Math.random() % 640, this.yOffset - 300));
+        if (this.branches.filter(function (branch) {
+          return branch.alive;
+        }).length === 0) {
+          this.alive = false;
+          return;
         }
-        this.lastSplitter = 0;
-      }
 
-      var _iteratorNormalCompletion3 = true;
-      var _didIteratorError3 = false;
-      var _iteratorError3 = undefined;
+        this.yOffset = this.branches.filter(function (branch) {
+          return branch.alive;
+        })[0].y - 240;
 
-      try {
-        for (var _iterator3 = this.splitters[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
-          var splitter = _step3.value;
+        this.lastSplitter += deltaTime;
 
-          splitter.update(deltaTime);
+        if (this.lastSplitter >= 1000) {
+          if (Math.random() > 0.7) {
+            this.splitters.push(new _splitter2.default(this, 640 * Math.random() % 640, this.yOffset - 300));
+          }
+          this.lastSplitter = 0;
         }
-      } catch (err) {
-        _didIteratorError3 = true;
-        _iteratorError3 = err;
-      } finally {
+
+        var _iteratorNormalCompletion3 = true;
+        var _didIteratorError3 = false;
+        var _iteratorError3 = undefined;
+
         try {
-          if (!_iteratorNormalCompletion3 && _iterator3.return) {
-            _iterator3.return();
+          for (var _iterator3 = this.splitters[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
+            var splitter = _step3.value;
+
+            splitter.update(deltaTime);
           }
+        } catch (err) {
+          _didIteratorError3 = true;
+          _iteratorError3 = err;
         } finally {
-          if (_didIteratorError3) {
-            throw _iteratorError3;
+          try {
+            if (!_iteratorNormalCompletion3 && _iterator3.return) {
+              _iterator3.return();
+            }
+          } finally {
+            if (_didIteratorError3) {
+              throw _iteratorError3;
+            }
           }
         }
-      }
 
-      this.game.score += deltaTime / 10;
-      this.game.score = Math.floor(this.game.score);
+        this.game.score += deltaTime / 10;
+        this.game.score = Math.floor(this.game.score);
+      }
     }
   }, {
     key: 'draw',
@@ -1260,4 +1662,4 @@ var Tree = (function () {
 })();
 
 exports.default = Tree;
-},{"./branch":2,"./splitter":12}]},{},[1]);
+},{"./branch":2,"./splitter":16}]},{},[1]);

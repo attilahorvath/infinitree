@@ -1,6 +1,7 @@
 'use strict';
 
 import getImage from './get_image';
+import playSound from './play_sound';
 
 class Splitter {
   constructor(tree, x, y) {
@@ -16,6 +17,7 @@ class Splitter {
       for (let branch of this.tree.branches) {
         let endSection = branch.sections[branch.sections.length - 1];
         if (Math.abs(endSection.x - this.x) <= 25 && Math.abs(endSection.y - this.y) <= 25) {
+          playSound('audio/split.mp3');
           this.tree.splitBranch(branch);
           this.active = false;
           this.tree.game.shake(400);

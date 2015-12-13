@@ -2,6 +2,7 @@
 
 import Section from './section';
 import Leaf from './leaf';
+import playSound from './play_sound';
 
 class Branch {
   constructor(tree, x, y) {
@@ -58,6 +59,13 @@ class Branch {
 
       for (let section of this.sections) {
         section.update(deltaTime);
+      }
+
+      if (this.x < -10 || this.x > 650) {
+        playSound('audio/hit.mp3');
+        this.tree.game.shake(400);
+        this.tree.game.emitParticles(this.x, this.y, 'images/obstacle_particle.png', 25);
+        this.alive = false;
       }
     }
   }
