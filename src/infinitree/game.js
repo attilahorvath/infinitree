@@ -9,10 +9,12 @@ import Particle from './particle';
 import Music from './music';
 import GameOver from './game_over';
 import preloadImages from './preload_images';
+import preloadSounds from './preload_sounds';
 
 class Game {
   constructor() {
     preloadImages(['images/branch_particle.png', 'images/cloud.png', 'images/end_section.png', 'images/ground_top.png', 'images/ground.png', 'images/left_leaf.png', 'images/obstacle_particle.png', 'images/obstacle0.png', 'images/obstacle1.png', 'images/right_leaf.png', 'images/section.png', 'images/splitter.png']);
+    preloadSounds(['audio/infinitree.mp3', 'audio/hit.mp3', 'audio/split.mp3']);
 
     this.canvas = document.createElement('canvas');
     this.canvas.width = 640;

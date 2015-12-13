@@ -82,7 +82,7 @@ class Tree {
       this.lastSplitter += deltaTime;
 
       if (this.lastSplitter >= 1000) {
-        if (Math.random() > 0.7) {
+        if (Math.random() > 0.6) {
           this.splitters.push(new Splitter(this, 640 * Math.random() % 640, this.yOffset - 300));
         }
         this.lastSplitter = 0;

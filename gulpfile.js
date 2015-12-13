@@ -23,7 +23,7 @@ gulp.task('browserify', ['compile'], () => {
   .bundle()
   .pipe(source('infinitree.js'))
   .pipe(buffer())
-  //.pipe(uglify())
+  .pipe(uglify())
   .pipe(gulp.dest('dist'));
 });
 
